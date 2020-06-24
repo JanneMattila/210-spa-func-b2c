@@ -1,12 +1,15 @@
 Param (
     [Parameter(HelpMessage="Deployment target resource group")] 
-    [string] $ResourceGroupName = "rg-spafunc-local",
+    [string] $ResourceGroupName = "rg-spafunc-b2c-local",
 
     [Parameter(HelpMessage="Deployment target resource group location")] 
     [string] $Location = "North Europe",
 
     [Parameter(HelpMessage="Deployment environment name")] 
     [string] $EnvironmentName = "local",
+
+    [Parameter(HelpMessage="Azure AD B2C Tenant name")] 
+    [string] $TenantName = "azureadb2cdemo1000.onmicrosoft.com",
 
     [Parameter(HelpMessage="App root folder path to publish e.g. ..\src\SpaSalesReader\wwwroot\")] 
     [string] $AppRootFolderReader = "..\src\SpaSalesReader\wwwroot\",
@@ -43,7 +46,7 @@ if ($null -eq (Get-AzResourceGroup -Name $ResourceGroupName -Location $Location 
     New-AzResourceGroup -Name $ResourceGroupName -Location $Location -Verbose
 }
 
-$azureADdeployment = . $PSScriptRoot\deploy_aad_apps.ps1 -EnvironmentName $EnvironmentName
+$azureADdeployment = . $PSScriptRoot\deploy_aad_apps.ps1 -EnvironmentName $EnvironmentName -TenantName $TenantName
 
 # Additional parameters that we pass to the template deployment
 $additionalParameters = New-Object -TypeName hashtable
@@ -94,6 +97,7 @@ Write-Host "##vso[task.setvariable variable=Custom.WebAppUri;]$webAppUri"
 
 $azureADdeployment = . $PSScriptRoot\deploy_aad_apps.ps1 `
     -EnvironmentName $EnvironmentName `
+    -TenantName $TenantName `
     -SPAReaderUri $webReaderStorageUri `
     -SPAWriterUri $webWriterStorageUri `
     -UpdateReplyUrl # Update reply urls

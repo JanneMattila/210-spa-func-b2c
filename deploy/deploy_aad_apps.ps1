@@ -2,6 +2,9 @@ Param (
     [Parameter(HelpMessage="Deployment environment name")] 
     [string] $EnvironmentName = "local",
     
+    [Parameter(HelpMessage="Azure AD B2C Tenant name")] 
+    [string] $TenantName,
+
     [Parameter(HelpMessage="Flag to indicate if AzureAD applications reply urls should be updated")] 
     [switch] $UpdateReplyUrl,
 
@@ -36,7 +39,7 @@ else
     Import-Module AzureAD
 }
 
-Connect-AzureAD -AadAccessToken $accessToken -AccountId $accountId -TenantId $tenant | Out-Null
+Connect-AzureAD -AadAccessToken $accessToken -AccountId $accountId -TenantDomain $TenantName | Out-Null
 
 $apiAppName = "SPA-FUNC API $EnvironmentName"
 $spaReaderAppName = "SPA-FUNC Sales Reader $EnvironmentName"
@@ -70,8 +73,8 @@ else
     $userRead = "e1fe6dd8-ba31-4d61-89e7-88639da4683d" # "User.Read"
 
     # Custom identifiers for our APIs
-    $permissionSalesRead = "d2dc4339-3161-4d78-a579-8b50f4c4da39" # "Sales.Read"
-    $permissionSalesReadWrite = "39579f07-da63-4735-850d-f802b0d08057" # "Sales.ReadWrite"
+    $permissionSalesRead = "91d61d67-0dc2-46f8-95c6-3193c64768b9" # "Sales.Read"
+    $permissionSalesReadWrite = "cb14e36e-093f-4c58-978d-00b4189059b7" # "Sales.ReadWrite"
 
     $readPermission = New-Object Microsoft.Open.AzureAD.Model.OAuth2Permission
     $readPermission.Id = $permissionSalesRead
@@ -94,7 +97,7 @@ else
     $permissions.Add($readWritePermission)
 
     $apiApp = New-AzureADApplication -DisplayName $apiAppName `
-        -IdentifierUris "api://spa-func.$EnvironmentName" `
+        -IdentifierUris "https://$TenantName/spa-func-b2c.$EnvironmentName" `
         -PublicClient $false `
         -Oauth2Permissions $permissions
     $apiApp
