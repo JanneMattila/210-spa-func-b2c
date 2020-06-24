@@ -1,0 +1,210 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clientId": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD ClientId of API application."
+      }
+    },
+    "tenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD Tenant Id."
+      }
+    },
+    "applicationIdURI": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD API Applications audience."
+      }
+    },
+    "storageType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    }
+  },
+  "variables": {
+    "appName": "spafunc",
+    "webStorageNameReader": "[concat('spareader', uniqueString(resourceGroup().id))]",
+    "webStorageNameWriter": "[concat('spawriter', uniqueString(resourceGroup().id))]",
+    "spaReaderUri": "[concat('https://',variables('webStorageNameReader'),'.z16.web.core.windows.net')]",
+    "spaWriterUri": "[concat('https://',variables('webStorageNameWriter'),'.z16.web.core.windows.net')]",
+    "appStorageName": "[concat('spar', uniqueString(resourceGroup().id))]",
+    "appServiceName": "[concat('azspafun-',variables('appName'),'-',uniqueString(resourceGroup().id))]",
+    "appServicePlanName": "[concat('azappplan-', variables('appName'))]"
+  },
+  "resources": [
+    {
+      "name": "[variables('webStorageNameReader')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[parameters('location')]",
+      "apiVersion": "2018-02-01",
+      "sku": {
+        "name": "[parameters('storageType')]"
+      },
+      "dependsOn": [],
+      "tags": {},
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "encryption": {
+          "keySource": "Microsoft.Storage",
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('webStorageNameWriter')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[parameters('location')]",
+      "apiVersion": "2018-02-01",
+      "sku": {
+        "name": "[parameters('storageType')]"
+      },
+      "dependsOn": [],
+      "tags": {},
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "encryption": {
+          "keySource": "Microsoft.Storage",
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('appServicePlanName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[parameters('location')]",
+      "apiVersion": "2019-08-01",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      }
+    },
+    {
+      "name": "[variables('appStorageName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[parameters('location')]",
+      "apiVersion": "2018-07-01",
+      "sku": {
+        "name": "[parameters('storageType')]"
+      },
+      "dependsOn": [],
+      "tags": {},
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "encryption": {
+          "keySource": "Microsoft.Storage",
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('appServiceName')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[parameters('location')]",
+      "apiVersion": "2018-11-01",
+      "kind": "functionapp",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('appStorageName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "webSocketsEnabled": true,
+          "http20Enabled": true,
+          "clientAffinityEnabled": false,
+          "ftpsState": "Disabled",
+          "cors": {
+            "allowedOrigins": [
+              "[variables('spaReaderUri')]",
+              "[variables('spaWriterUri')]"
+            ],
+            "supportCredentials": true
+          }
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('appServiceName'), '/appsettings')]",
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2018-11-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "properties": {
+        "AzureWebJobsDisableHomepage": "true",
+        "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('appStorageName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('appStorageName')), '2018-02-01').keys[0].value)]",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+        "FUNCTIONS_EXTENSION_VERSION": "~3",
+        "WEBSITE_RUN_FROM_PACKAGE": "1",
+
+        "AzureAD:ClientId": "[parameters('clientId')]",
+        "AzureAD:TenantId": "[parameters('tenantId')]",
+        "AzureAD:Audience": "[parameters('applicationIdURI')]"
+      }
+    }
+  ],
+  "outputs": {
+    "webStorageNameReader": {
+      "type": "string",
+      "value": "[variables('webStorageNameReader')]"
+    },
+    "webStorageNameWriter": {
+      "type": "string",
+      "value": "[variables('webStorageNameWriter')]"
+    },
+    "webAppName": {
+      "type": "string",
+      "value": "[variables('appServiceName')]"
+    },
+    "webAppUri": {
+      "type": "string",
+      "value": "[concat('https://',reference(resourceId('Microsoft.Web/sites', variables('appServiceName'))).hostNames[0])]"
+    }
+  }
+}

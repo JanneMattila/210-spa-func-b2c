@@ -1,0 +1,72 @@
+pool:
+  vmImage: windows-latest
+  demands:
+  - msbuild
+  - visualstudio
+  - vstest
+
+variables:
+  BuildPlatform: 'any cpu'
+  BuildConfiguration: 'release'
+
+trigger:
+- master
+- develop
+
+name: 1.0.$(Rev:r)
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    steps:
+    - task: NuGetToolInstaller@1
+      displayName: 'Use NuGet'
+      inputs:
+        versionSpec: 5.4.0
+
+    - task: NuGetCommand@2
+      displayName: 'NuGet restore'
+      inputs:
+        restoreSolution: '**\*.sln'
+
+    - task: VSBuild@1
+      displayName: 'Build solution'
+      inputs:
+        msbuildArgs: '/p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="$(Agent.TempDirectory)\WebAppContent\\"'
+        platform: '$(BuildPlatform)'
+        configuration: '$(BuildConfiguration)'
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive Files'
+      inputs:
+        rootFolderOrFile: '$(Agent.TempDirectory)\WebAppContent'
+        includeRootFolder: false
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: SpaSalesReader'
+      inputs:
+        PathtoPublish: 'src/SpaSalesReader/wwwroot'
+        ArtifactName: spareaderweb
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: SpaSalesWriter'
+      inputs:
+        PathtoPublish: 'src/SpaSalesWriter/wwwroot'
+        ArtifactName: spawriterweb
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: app'
+      inputs:
+        PathtoPublish: '$(build.artifactstagingdirectory)'
+        ArtifactName: app
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: deploy'
+      inputs:
+        PathtoPublish: deploy
+        ArtifactName: deploy
+
+- template: azure-pipelines-deploy.yml
+  parameters:
+    environtName: 'Dev'
+    resourceGroupName: 'rg-spafunc-dev'

@@ -1,0 +1,202 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>B2C SPA "Sales Reader" - Func Demo</title>
+    <script type="text/javascript" src="https://alcdn.msauth.net/lib/1.2.1/js/msal.min.js" integrity="sha384-Z4L5heyGO9VZ/MBCDx9GRtQW50Hrmp32ByIKuqwFesWyB+MDNy9ueVgclolfwj1Q" crossorigin="anonymous"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <style type="text/css">
+        html,
+        body,
+        input {
+            padding-top: 0px;
+            padding-bottom: 10px;
+            padding-left: 20px;
+            font-family: 'Segoe UI Light', sans-serif;
+            font-size: 20px;
+            text-align: left;
+            margin: 0 auto;
+            width: 800px;
+        }
+    </style>
+    <script>
+        let endpoint = "http://localhost:7071";
+
+        let userAgentApplication;
+        let accessTokenRequest;
+        let accessToken;
+
+        fetch("/configuration.json")
+            .then(response => {
+                return response.json();
+            })
+            .then(data => {
+                console.log(data);
+                processConfiguration(data)
+            })
+            .catch(error => {
+                console.log(error);
+                solutionElement.innerHTML = "Oh no! Couldn't fetch configuration settings 😥";
+            });
+
+        function processConfiguration(data) {
+            endpoint = data.endpoint;
+            accessTokenRequest = {
+                scopes: [
+                    /*
+                     * This permission causes following error:
+                     * AADSTS70011: The provided request must include a 'scope' input parameter.
+                     * Because scope part is mandatory:
+                     * data.applicationIdURI
+                     */
+
+                    /*
+                     * This permission launches "Permissions requested" dialog
+                     * but even if the permission "Accept"ed then it does not
+                     * apply since this permission is not set for this SPA
+                     * in ther API permissions:
+                     * data.applicationIdURI + "Sales.ReadWrite"
+                     */
+
+                    /*
+                     * This permission works because it matches
+                     * with the permission configured in Azure AD.
+                     * This SPA has API Permission to the backend
+                     * app for this API:
+                     * data.applicationIdURI + "Sales.Read"
+                     */
+                    data.applicationIdURI + "Sales.Read"
+                ]
+            }
+
+            const config = {
+                auth: {
+                    clientId: data.clientId,
+                    authority: "https://login.microsoftonline.com/" + data.tenantId,
+                }
+            }
+
+            userAgentApplication = new Msal.UserAgentApplication(config);
+            function authCallback(error, response) {
+                // Handle redirect responses
+                if (error) {
+                    console.log(error);
+                }
+                else {
+                    if (response.tokenType === "id_token") {
+                        console.log('id_token acquired at: ' + new Date().toString());
+                    }
+                    else if (response.tokenType === "access_token") {
+                        console.log('access_token acquired at: ' + new Date().toString());
+                        accessToken = response.accessToken;
+                        afterLogin(response.account);
+                    }
+                    else {
+                        console.log("token type is:" + response.tokenType);
+                    }
+                }
+            }
+
+            userAgentApplication.handleRedirectCallback(authCallback);
+
+            userAgentApplication.acquireTokenSilent(accessTokenRequest).then(function (accessTokenResponse) {
+                // Acquire token silent success
+                // Call API with token
+                console.log(accessTokenResponse);
+                accessToken = accessTokenResponse.accessToken;
+                afterLogin(accessTokenResponse.account);
+            }).catch(function (error) {
+                // Acquire token silent failure, and send an interactive request
+                if (error.errorMessage.indexOf("User login is required") !== -1) {
+                    userAgentApplication.acquireTokenRedirect(accessTokenRequest);
+                }
+            });
+        }
+
+        function login() {
+            userAgentApplication.loginRedirect(accessTokenRequest);
+        }
+
+        function afterLogin(account) {
+            document.getElementById("beforeLogin").style.display = "none";
+            document.getElementById("afterLogin").style.display = "";
+            document.getElementById("user").innerText = account.name;
+        }
+
+        function callMe() {
+            fetch(endpoint + "/api/me",
+                {
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + accessToken
+                    }
+                })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+
+        function callGetSales() {
+            fetch(endpoint + "/api/sales",
+                {
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + accessToken
+                    }
+                })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+
+        function callDeleteSales() {
+            fetch(endpoint + "/api/sales/1",
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Bearer " + accessToken
+                    }
+                })
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>
+        B2C SPA "Sales.Read" + Func
+    </h1>
+    <div id="user">Anonymous</div>
+    <div id="beforeLogin">
+        <input id="loginButton" type="button" value="Login" onclick="login();" />
+    </div>
+    <div id="afterLogin" style="display: none">
+        <input id="meButton" type="button" value="Me" onclick="callMe();" />
+        <br />
+        <br />
+        <label for="salesButton">Sales</label>
+        <input id="getSalesButton" type="button" value="GET" onclick="callGetSales();" />
+        <input id="deleteSalesButton" type="button" value="DELETE" onclick="callDeleteSales();" />
+    </div>
+</body>
+</html>
