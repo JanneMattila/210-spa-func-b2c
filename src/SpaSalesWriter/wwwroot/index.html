@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <title>SPA "Sales Writer" - Func Demo</title>
+    <title>B2C SPA "Sales Writer" - Func Demo</title>
     <script type="text/javascript" src="https://alcdn.msauth.net/lib/1.2.1/js/msal.min.js" integrity="sha384-Z4L5heyGO9VZ/MBCDx9GRtQW50Hrmp32ByIKuqwFesWyB+MDNy9ueVgclolfwj1Q" crossorigin="anonymous"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -44,13 +44,6 @@
             accessTokenRequest = {
                 scopes: [
                     /*
-                     * This permission causes following error:
-                     * AADSTS70011: The provided request must include a 'scope' input parameter.
-                     * Because scope part is mandatory:
-                     * data.applicationIdURI
-                     */
-
-                    /*
                      * This permission works because it matches
                      * with the permission configured in Azure AD.
                      * This SPA has API Permission to the backend
@@ -79,12 +72,14 @@
             const config = {
                 auth: {
                     clientId: data.clientId,
-                    authority: "https://login.microsoftonline.com/" + data.tenantId,
+                    authority: `https://${data.tenantName}.b2clogin.com/${data.tenantName}.onmicrosoft.com/${data.signInPolicy}`,
+                    validateAuthority: false
                 }
             }
 
             userAgentApplication = new Msal.UserAgentApplication(config);
             function authCallback(error, response) {
+                console.log(response);
                 // Handle redirect responses
                 if (error) {
                     console.log(error);
@@ -191,7 +186,7 @@
 </head>
 <body>
     <h1>
-        SPA "Sales.ReadWrite" + Func
+        B2C SPA "Sales.ReadWrite" + Func
     </h1>
     <div id="user">Anonymous</div>
     <div id="beforeLogin">

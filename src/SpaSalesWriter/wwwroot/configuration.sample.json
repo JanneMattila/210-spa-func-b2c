@@ -1,0 +1,8 @@
+{
+  "endpoint": "http://localhost:7071",
+  "clientId": "e3341b6c-31c6-4223-aeca-84e9f531e0c0",
+  "tenantId": "55ba2bfb-66b2-465f-aee5-8b359aee62aa",
+  "tenantName": "yourb2ctenantname",
+  "signInPolicy": "B2C_1_SignIn",
+  "applicationIdURI": "https://yourb2ctenantname.onmicrosoft.com/spa-func-backend/"
+}
