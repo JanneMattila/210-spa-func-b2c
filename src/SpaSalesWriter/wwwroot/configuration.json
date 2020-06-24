@@ -2,5 +2,7 @@
   "endpoint": "http://localhost:7071",
   "clientId": "<!-- guid like identifier -->",
   "tenantId": "<!-- guid like identifier -->",
+  "tenantName": "<!-- your B2C tenant name -->",
+  "signInPolicy": "<!-- name of B2C sign-in policy -->",
   "applicationIdURI": "<!-- web address like identifier  -->"
 }

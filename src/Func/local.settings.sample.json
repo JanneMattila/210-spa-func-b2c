@@ -6,11 +6,11 @@
 
     "Storage": "UseDevelopmentStorage=true",
 
-    "AzureADB2C:Audience": "",
-    "AzureADB2C:ClientId": "",
-    "AzureADB2C:TenantId": "",
-    "AzureADB2C:TenantName": "",
-    "AzureADB2C:SignInPolicy": ""
+    "AzureADB2C:Audience": "https://yourb2ctenantname.onmicrosoft.com/spa-func-backend",
+    "AzureADB2C:ClientId": "60e8bb69-1a7a-4304-aabb-00513c16128c",
+    "AzureADB2C:TenantId": "55ba2bfb-66b2-465f-aee5-8b359aee62aa",
+    "AzureADB2C:TenantName": "yourb2ctenantname",
+    "AzureADB2C:SignInPolicy": "B2C_1_SignIn"
   },
   "Host": {
     "CORS": "https://localhost:44387,https://localhost:44388",
